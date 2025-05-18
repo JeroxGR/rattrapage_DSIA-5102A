@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Librairie – Gestion</title>
+  <style>
+    body { font-family: Arial, sans-serif; background-color: #f4f4f9; margin: 0; padding: 0; }
+    header { background-color: #4a76a8; color: white; padding: 1em; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+    #auth, #app { max-width: 800px; margin: 2em auto; padding: 1em; background: white; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+    h2 { color: #4a76a8; margin-top: 0; }
+    input, select, button { padding: 0.5em; margin: 0.3em; border: 1px solid #ccc; border-radius: 4px; font-size: 1em; }
+    button { background-color: #4a76a8; color: white; cursor: pointer; }
+    button:hover { background-color: #3b5f84; }
+    section { margin-bottom: 1.5em; }
+    ul { list-style: none; padding: 0; }
+    li { background: #eef; margin: 0.3em 0; padding: 0.5em; border-radius: 4px; display: flex; justify-content: space-between; align-items: center; }
+    li button { background: transparent; border: none; color: #555; font-size: 1.2em; }
+    li button:hover { color: #4a76a8; }
+    #logoutBtn { float: right; background-color: #d9534f; }
+    #logoutBtn:hover { background-color: #c12e2a; }
+    pre { background: #272822; color: #f8f8f2; padding: 1em; border-radius: 4px; overflow-x: auto; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Bienvenue à la Bibliothèque de Mohamed</h1>
+  </header>
+  <div id="auth">
+    <h2>Inscription</h2>
+    <input id="newUsername" placeholder="Username">
+    <input id="newPassword" type="password" placeholder="Password">
+    <button id="signupBtn">S'inscrire</button>
+    <h2>Connexion</h2>
+    <input id="username" placeholder="Username">
+    <input id="password" type="password" placeholder="Password">
+    <button id="loginBtn">Se connecter</button>
+    <pre id="msg"></pre>
+  </div>
+
+  <div id="app" style="display:none;">
+    <button id="logoutBtn">Déconnexion</button>
+    <h2>Livres</h2>
+    <section id="booksSection">
+      <input id="bTitle" placeholder="Titre">
+      <input id="bAuthor" placeholder="Auteur">
+      <input id="bISBN" placeholder="ISBN">
+      <button id="addBookBtn">Ajouter</button>
+      <ul id="booksList"></ul>
+    </section>
+    <h2>Étudiants</h2>
+    <section id="studentsSection">
+      <input id="sName" placeholder="Nom">
+      <input id="sEmail" placeholder="Email">
+      <button id="addStudentBtn">Ajouter</button>
+      <ul id="studentsList"></ul>
+    </section>
+    <h2>Emprunts</h2>
+    <section id="bookingsSection">
+      <select id="selectBook"></select>
+      <select id="selectStudent"></select>
+      <button id="addBookingBtn">Emprunter</button>
+      <ul id="bookingsList"></ul>
+    </section>
+  </div>
+
+  <script>
+    const api = 'http://localhost:8000';
+    let token = '';
+
+    const headers = () => ({
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`
+    });
+
+    async function refresh() {
+      // Books
+      const resB = await fetch(`${api}/books/`, { headers: headers() });
+      const books = await resB.json();
+      document.getElementById('booksList').innerHTML = books.map(b =>
+        `<li>#${b.id} | Titre: ${b.title} | Auteur: ${b.author} | ISBN: ${b.isbn} <button onclick="updBook(${b.id})">✎</button><button onclick="delBook(${b.id})">🗑️</button></li>`
+      ).join('');
+      document.getElementById('selectBook').innerHTML = books.map(b =>
+        `<option value="${b.id}">${b.title}</option>`
+      ).join('');
+
+      // Students
+      const resS = await fetch(`${api}/students/`, { headers: headers() });
+      const students = await resS.json();
+      document.getElementById('studentsList').innerHTML = students.map(s =>
+        `<li>#${s.id} | Nom: ${s.name} | Email: ${s.email} <button onclick="updStudent(${s.id})">✎</button><button onclick="delStudent(${s.id})">🗑️</button></li>`
+      ).join('');
+      document.getElementById('selectStudent').innerHTML = students.map(s =>
+        `<option value="${s.id}">${s.name}</option>`
+      ).join('');
+
+      // Bookings
+      const resBk = await fetch(`${api}/bookings/`, { headers: headers() });
+      const bookings = await resBk.json();
+      document.getElementById('bookingsList').innerHTML = bookings.map(bk =>
+        `<li>#${bk.id} | Livre ID: ${bk.book_id} | Étudiant ID: ${bk.student_id} | Date: ${new Date(bk.timestamp).toLocaleString()} <button onclick="delBooking(${bk.id})">🗑️</button></li>`
+      ).join('');
+    }
+
+    // Signup
+    document.getElementById('signupBtn').onclick = async () => {
+      const u = document.getElementById('newUsername').value;
+      const p = document.getElementById('newPassword').value;
+      const res = await fetch(`${api}/users/`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: u, password: p })
+      });
+      const data = await res.json();
+      document.getElementById('msg').textContent = res.ok ? `Utilisateur ${data.username} créé` : `Erreur ${data.detail}`;
+    };
+
+    // Login
+    document.getElementById('loginBtn').onclick = async () => {
+      const u = document.getElementById('username').value;
+      const p = document.getElementById('password').value;
+      const res = await fetch(`${api}/token`, {
+        method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({ username: u, password: p })
+      });
+      const data = await res.json();
+      if (!res.ok) { document.getElementById('msg').textContent = `Erreur login: ${data.detail}`; return; }
+      token = data.access_token;
+      document.getElementById('auth').style.display = 'none';
+      document.getElementById('app').style.display = 'block';
+      refresh();
+    };
+
+    document.getElementById('logoutBtn').onclick = () => {
+      token = '';
+      document.getElementById('app').style.display = 'none';
+      document.getElementById('auth').style.display = 'block';
+      document.getElementById('msg').textContent = '';
+    };
+
+    // CRUD Book
+    document.getElementById('addBookBtn').onclick = async () => {
+      const t = document.getElementById('bTitle').value;
+      const a = document.getElementById('bAuthor').value;
+      const i = document.getElementById('bISBN').value;
+      await fetch(`${api}/books/`, { method: 'POST', headers: headers(), body: JSON.stringify({ title: t, author: a, isbn: i }) });
+      refresh();
+    };
+    window.delBook = async id => { await fetch(`${api}/books/${id}`, { method: 'DELETE', headers: headers() }); refresh(); };
+    window.updBook = async id => {
+      const t = prompt('Titre:');
+      const a = prompt('Auteur:');
+      const i = prompt('ISBN:');
+      if (t && a && i) await fetch(`${api}/books/${id}`, { method: 'PUT', headers: headers(), body: JSON.stringify({ title: t, author: a, isbn: i }) });
+      refresh();
+    };
+
+    // CRUD Student
+    document.getElementById('addStudentBtn').onclick = async () => {
+      const n = document.getElementById('sName').value;
+      const e = document.getElementById('sEmail').value;
+      await fetch(`${api}/students/`, { method: 'POST', headers: headers(), body: JSON.stringify({ name: n, email: e }) });
+      refresh();
+    };
+    window.delStudent = async id => { await fetch(`${api}/students/${id}`, { method: 'DELETE', headers: headers() }); refresh(); };
+    window.updStudent = async id => {
+      const n = prompt('Nom:');
+      const e = prompt('Email:');
+      if (n && e) await fetch(`${api}/students/${id}`, { method: 'PUT', headers: headers(), body: JSON.stringify({ name: n, email: e }) });
+      refresh();
+    };
+
+    // CRUD Booking
+    document.getElementById('addBookingBtn').onclick = async () => {
+      const b = +document.getElementById('selectBook').value;
+      const s = +document.getElementById('selectStudent').value;
+      await fetch(`${api}/bookings/`, { method: 'POST', headers: headers(), body: JSON.stringify({ book_id: b, student_id: s }) });
+      refresh();
+    };
+    window.delBooking = async id => { await fetch(`${api}/bookings/${id}`, { method: 'DELETE', headers: headers() }); refresh(); };
+  </script>
