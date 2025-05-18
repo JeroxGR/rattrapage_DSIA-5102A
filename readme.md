@@ -1,4 +1,5 @@
 # Sujet : Gestion de librairie
+## Par : GRICH Mohamed
 Projet de gestion des empreintes de livres pour le rattrapage du module de développement full stack.  
 L’application permet de gérer les utilisateurs, les livres, les étudiants et les emprunts via une API sécurisée et un front-end interactif en HTML,CSS et JavaScript.
 
