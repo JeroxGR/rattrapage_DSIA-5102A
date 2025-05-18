@@ -16,7 +16,7 @@ L’application permet de gérer les utilisateurs, les livres, les étudiants et
   
 3. Accéder au front-end : http://localhost:8080
 4. Adminer (DB) : http://localhost:8081
-5. Accéder au front-end : http://localhost:8000/docs
+5. Accéder au back-end : http://localhost:8000/docs
 
 
 ## Captures d’écran de l'application
